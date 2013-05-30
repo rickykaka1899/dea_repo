@@ -106,9 +106,9 @@ module DEA
       @runtime_names = config['runtimes'] || []
       unless @runtime_names.kind_of? Array
         @logger.fatal("Config['runtimes'] should be a list of supported runtime names.  " +
-           "Please migrate additional properties to the  runtimes.yml file located in the " +
-           "Cloud Controller and/or Stager.")
-         exit 1
+                          "Please migrate additional properties to the  runtimes.yml file located in the " +
+                          "Cloud Controller and/or Stager.")
+        exit 1
       end
 
       @prod = config['prod']
@@ -139,7 +139,7 @@ module DEA
       # threshold (in percent) has been exceeded on the filesystem housing the
       # base_dir.
       @droplet_fs_percent_used_threshold =
-        config['droplet_fs_percent_used_threshold'] || DROPLET_FS_PERCENT_USED_THRESHOLD
+          config['droplet_fs_percent_used_threshold'] || DROPLET_FS_PERCENT_USED_THRESHOLD
       @dropet_fs_percent_used = 0
 
       #prevent use of shared directory for droplets even if available.
@@ -253,12 +253,12 @@ module DEA
         # Register ourselves with the system
         status_config = @config['status'] || {}
         VCAP::Component.register(:type => 'DEA',
-                           :host => @local_ip,
-                           :index => @config['index'],
-                           :config => @config,
-                           :port => status_config['port'],
-                           :user => status_config['user'],
-                           :password => status_config['password'])
+                                 :host => @local_ip,
+                                 :index => @config['index'],
+                                 :config => @config,
+                                 :port => status_config['port'],
+                                 :user => status_config['user'],
+                                 :password => status_config['password'])
 
         uuid = VCAP::Component.uuid
         @logger.info("DEA uuid #{uuid}")
@@ -318,10 +318,10 @@ module DEA
       return if !space_available? || @shutting_down
 
       advertise_message = {
-        :id => VCAP::Component.uuid,
-        :available_memory => @max_memory - @reserved_mem,
-        :runtimes => @runtime_names,
-        :prod => @prod
+          :id => VCAP::Component.uuid,
+          :available_memory => @max_memory - @reserved_mem,
+          :runtimes => @runtime_names,
+          :prod => @prod
       }
 
       NATS.publish('dea.advertise', advertise_message.to_json)
@@ -330,22 +330,22 @@ module DEA
 
     def send_single_heartbeat(instance)
       heartbeat = {
-        :droplets => [generate_heartbeat(instance)],
-        :dea => VCAP::Component.uuid,
-        :prod => @prod
+          :droplets => [generate_heartbeat(instance)],
+          :dea => VCAP::Component.uuid,
+          :prod => @prod
       }
       NATS.publish('dea.heartbeat', heartbeat.to_json)
     end
 
     def generate_heartbeat(instance)
       {
-        :droplet => instance[:droplet_id].to_s,
-        :version => instance[:version],
-        :instance => instance[:instance_id],
-        :index => instance[:instance_index],
-        :state => instance[:state],
-        :state_timestamp => instance[:state_timestamp],
-        :cc_partition => instance[:cc_partition]
+          :droplet => instance[:droplet_id].to_s,
+          :version => instance[:version],
+          :instance => instance[:instance_id],
+          :index => instance[:instance_index],
+          :state => instance[:state],
+          :state_timestamp => instance[:state_timestamp],
+          :cc_partition => instance[:cc_partition]
       }
     end
 
@@ -357,14 +357,14 @@ module DEA
         instances.each_value do |instance|
           next unless [:STARTING,:RUNNING].include?(instance[:state])
           response = {
-            :name => instance[:name],
-            :host => @local_ip,
-            :port => instance[:port],
-            :uris => instance[:uris],
-            :uptime => Time.now - instance[:start],
-            :mem_quota => instance[:mem_quota],
-            :disk_quota => instance[:disk_quota],
-            :fds_quota => instance[:fds_quota]
+              :name => instance[:name],
+              :host => @local_ip,
+              :port => instance[:port],
+              :uris => instance[:uris],
+              :uptime => Time.now - instance[:start],
+              :mem_quota => instance[:mem_quota],
+              :disk_quota => instance[:disk_quota],
+              :fds_quota => instance[:fds_quota]
           }
           response[:usage] = @usage[instance[:pid]].last if @usage[instance[:pid]]
           NATS.publish(reply, response.to_json)
@@ -400,7 +400,7 @@ module DEA
       return if @shutting_down
       @logger.debug("DEA received discovery message: #{message}")
       message_json = JSON.parse(message)
-    # Respond with where to find us if we can help.
+      # Respond with where to find us if we can help.
       if @shutting_down
         @logger.warn('Ignoring request, shutting down.')
       elsif @num_clients >= @max_clients || @reserved_mem > @max_memory
@@ -409,7 +409,7 @@ module DEA
         @logger.warn("Droplet FS has exceeded usage threshold, ignoring request")
       else
         # Check that we properly support the runtime requested
-         unless runtime_supported? message_json['runtime_info']
+        unless runtime_supported? message_json['runtime_info']
           @logger.debug("Ignoring request, #{message_json['runtime_info']} runtime not supported.")
           return
         end
@@ -429,7 +429,7 @@ module DEA
         delay = calculate_help_taint(droplet_id)
         @logger.info("--------------Find DEA time (#{delay})ms-------------------")
         delay = ([delay, TAINT_MAX_DELAY].min)/1000.0
-         @logger.info("After comparing with 0.25 Find DEA time (#{delay})ms")
+        #@logger.info("After comparing with 0.25 Find DEA time (#{delay})ms")
         EM.add_timer(delay) { NATS.publish(reply, @hello_message_json) }
       end
     end
@@ -437,23 +437,29 @@ module DEA
     def calculate_help_taint(droplet_id)
       # Calculate taint based on droplet already running here, then memory and cpu usage, etc.
       taint_ms = 0
-      @logger.info("-----------------------------usage::#{@usage}--------------------------------")
+      #@logger.info("-----------------------------usage::#{@usage}--------------------------------")
       @logger.info("-----------------------------droplets::#{@droplets}--------------------------------")
       #already_running = @droplets[droplet_id]
-      already_running = []
+      #already_running = []
+      already_running_num = 0
       @droplets.each_value do |instance|
         instance.each_value do |instances|
-          already_running<<instances[:instance_id]
+          #already_running<<instances[:instance_id]
+          if instances[:state] == :RUNNING
+            already_running_num += 1
+          else
+            already_running_num
+          end
         end
       end
-      already_running_num = already_running.length
+      #already_running_num = already_running.length
 
       #already_running_info = calculate_running_info_last_1
       #already_running_info = calculate_running_info_last_10
       already_running_info = calculate_running_info_last_min
       taint_ms += (already_running_info * 10 ) if already_running_info
 
-      taint_ms += (already_running_num * TAINT_MS_PER_APP) if already_running
+      taint_ms += (already_running_num * TAINT_MS_PER_APP) if already_running_num
       mem_percent = @reserved_mem / @max_memory.to_f
       @logger.info("----------------running_num: #{already_running_num}///mem_percent: #{mem_percent}---------------------")
       taint_ms += (mem_percent * TAINT_MS_FOR_MEM)
@@ -465,7 +471,6 @@ module DEA
       cpuusage = []
       memusage = []
       diskusage = []
-      @logger.info("-----------------------------@usage::#{@usage}--------------------------------")
       @usage.each do |key,value|
         len = value.length
         #usage[key] = value[len-1][:cpu]
@@ -489,6 +494,9 @@ module DEA
       for i in 0...dlen
         dsumusage += diskusage[i]
       end
+
+      @logger.info("csumusage:#{csumusage};msumusage:#{msumusage};dsumusage:#{dsumusage}")
+
       return  csumusage/100.0 + msumusage/1024.0/@max_memory + dsumusage/(1024.0*1024.0*1024*2)
 
     end
@@ -497,7 +505,6 @@ module DEA
       cpuusage = []
       memusage = []
       diskusage = []
-      @logger.info("-----------------------------@usage::#{@usage}--------------------------------")
       @usage.each do |key,value|
         len = value.length
         #usage[key] = value[len-1][:cpu]
@@ -533,6 +540,9 @@ module DEA
         dsumusage += diskusage[i]
       end
       dsumusage /= 10
+
+      @logger.info("csumusage:#{csumusage};msumusage:#{msumusage};dsumusage:#{dsumusage}")
+
       return  csumusage/100.0 + msumusage/1024.0/@max_memory + dsumusage/(1024.0*1024.0*1024*2)
 
     end
@@ -541,9 +551,7 @@ module DEA
       cpuusage = []
       memusage = []
       diskusage = []
-      @logger.info("-----------------------------@usage::#{@usage}--------------------------------")
       usage_len = @usage.size
-      @logger.info("-----------------------------usage_len : #{usage_len}-------------------------------")
       @usage.each do |key,value|
         len = value.length
         #usage[key] = value[len-1][:cpu]
@@ -553,13 +561,12 @@ module DEA
             memusage<<value[i][:mem]
             diskusage<<value[i][:disk]
           end
-         end
+        end
 
       end
       clen = cpuusage.length
       mlen = memusage.length
       dlen = diskusage.length
-      @logger.info("=-------------------length: #{clen} , #{mlen}, #{dlen}")
 
       csumusage = 0
       msumusage = 0
@@ -595,7 +602,9 @@ module DEA
         dsumusage = 0
       end
 
-      return  csumusage/100.0 + msumusage/1024.0/@max_memory + dsumusage/(1024.0*1024.0*1024*2)
+      @logger.info("csumusage:#{csumusage};msumusage:#{msumusage};dsumusage:#{dsumusage}")
+
+      return csumusage/100.0 + msumusage/1024.0/@max_memory + dsumusage/(1024.0*1024.0*1024*2)
 
     end
 
@@ -622,32 +631,32 @@ module DEA
 
           if version_matched && instance_matched && index_matched && state_matched
             response = {
-              :dea => VCAP::Component.uuid,
-              :version => instance[:version],
-              :droplet => instance[:droplet_id],
-              :instance => instance[:instance_id],
-              :index => instance[:instance_index],
-              :state => instance[:state],
-              :state_timestamp => instance[:state_timestamp],
-              :file_uri => "http://#{@local_ip}:#{@file_viewer_port}/droplets/",
-              :credentials => @file_auth,
-              :staged => instance[:staged],
-              :debug_ip => instance[:debug_ip],
-              :debug_port => instance[:debug_port],
-              :console_ip => instance[:console_ip],
-              :console_port => instance[:console_port]
+                :dea => VCAP::Component.uuid,
+                :version => instance[:version],
+                :droplet => instance[:droplet_id],
+                :instance => instance[:instance_id],
+                :index => instance[:instance_index],
+                :state => instance[:state],
+                :state_timestamp => instance[:state_timestamp],
+                :file_uri => "http://#{@local_ip}:#{@file_viewer_port}/droplets/",
+                :credentials => @file_auth,
+                :staged => instance[:staged],
+                :debug_ip => instance[:debug_ip],
+                :debug_port => instance[:debug_port],
+                :console_ip => instance[:console_ip],
+                :console_port => instance[:console_port]
             }
             if include_stats && instance[:state] == :RUNNING
               response[:stats] = {
-                :name => instance[:name],
-                :host => @local_ip,
-                :port => instance[:port],
-                :uris => instance[:uris],
-                :uptime => Time.now - instance[:start],
-                :mem_quota => instance[:mem_quota],
-                :disk_quota => instance[:disk_quota],
-                :fds_quota => instance[:fds_quota],
-                :cores => @num_cores
+                  :name => instance[:name],
+                  :host => @local_ip,
+                  :port => instance[:port],
+                  :uris => instance[:uris],
+                  :uptime => Time.now - instance[:start],
+                  :mem_quota => instance[:mem_quota],
+                  :disk_quota => instance[:disk_quota],
+                  :fds_quota => instance[:fds_quota],
+                  :cores => @num_cores
               }
               @logger.info("---------------#{@usage[instance[:pid]]}----------------------------------")
               response[:stats][:usage] = @usage[instance[:pid]].last if @usage[instance[:pid]]
@@ -778,26 +787,26 @@ module DEA
       instance_dir = File.join(@apps_dir, "#{name}-#{instance_index}-#{instance_id}")
 
       instance = {
-        :droplet_id => droplet_id,
-        :instance_id => instance_id,
-        :private_instance_id => private_instance_id,
-        :instance_index => instance_index,
-        :name => name,
-        :dir => instance_dir,
-        :uris => uris,
-        :users => users,
-        :version => version,
-        :mem_quota => mem * (1024*1024),
-        :disk_quota => disk  * (1024*1024),
-        :fds_quota => num_fds,
-        :state => :STARTING,
-        :runtime => runtime['name'],
-        :framework => framework,
-        :start => Time.now,
-        :state_timestamp => Time.now.to_i,
-        :log_id => "(name=%s app_id=%s instance=%s index=%s)" % [name, droplet_id, instance_id, instance_index],
-        :flapping => flapping ? true : false,
-        :cc_partition => cc_partition
+          :droplet_id => droplet_id,
+          :instance_id => instance_id,
+          :private_instance_id => private_instance_id,
+          :instance_index => instance_index,
+          :name => name,
+          :dir => instance_dir,
+          :uris => uris,
+          :users => users,
+          :version => version,
+          :mem_quota => mem * (1024*1024),
+          :disk_quota => disk  * (1024*1024),
+          :fds_quota => num_fds,
+          :state => :STARTING,
+          :runtime => runtime['name'],
+          :framework => framework,
+          :start => Time.now,
+          :state_timestamp => Time.now.to_i,
+          :log_id => "(name=%s app_id=%s instance=%s index=%s)" % [name, droplet_id, instance_id, instance_index],
+          :flapping => flapping ? true : false,
+          :cc_partition => cc_partition
       }
 
       instances = @droplets[droplet_id] || {}
@@ -852,8 +861,8 @@ module DEA
         end
 
         @logger.info("Starting up instance #{instance[:log_id]} on port:#{instance[:port]} " +
-                     "#{"debugger:" if instance[:debug_port]}#{instance[:debug_port]}" +
-                     "#{"console:" if instance[:console_port]}#{instance[:console_port]}")
+                         "#{"debugger:" if instance[:debug_port]}#{instance[:debug_port]}" +
+                         "#{"console:" if instance[:console_port]}#{instance[:console_port]}")
         @logger.debug("Clients: #{@num_clients}")
         @logger.debug("Reserved Memory Usage: #{@reserved_mem} MB of #{@max_memory} MB TOTAL")
 
@@ -869,13 +878,13 @@ module DEA
         # Secure mode requires a platform-specific shell command.
         if @secure
           case RUBY_PLATFORM
-          when /linux/
-            sh_command = "env -i su -s /bin/bash #{user[:user]}"
-          when /darwin/
-            sh_command = "env -i su -m #{user[:user]}"
-          else
-            @logger.fatal("Unsupported platform for secure mode: #{RUBY_PLATFORM}")
-            exit 1
+            when /linux/
+              sh_command = "env -i su -s /bin/bash #{user[:user]}"
+            when /darwin/
+              sh_command = "env -i su -m #{user[:user]}"
+            else
+              @logger.fatal("Unsupported platform for secure mode: #{RUBY_PLATFORM}")
+              exit 1
           end
         else
           # In non-secure mode, we simply use 'sh' to execute commands, but still strip the environment
@@ -1263,9 +1272,9 @@ module DEA
             # The tgz_file will be deleted after it is decompressed.
             unless @disable_dir_cleanup
               tgz_file = random_file_name(
-                :prefix => "#{tgz_file}.",
-                :chars => ('0'..'9').to_a + ('Q'..'Z').to_a,
-                :length => 4
+                  :prefix => "#{tgz_file}.",
+                  :chars => ('0'..'9').to_a + ('Q'..'Z').to_a,
+                  :length => 4
               )
               @logger.debug("linking tgz_file #{tgz_file} to #{downloaded}")
               File.link(downloaded, tgz_file) rescue @logger.warn('Failed link')
@@ -1345,9 +1354,9 @@ module DEA
       env_hash = {}
       whitelist.each {|k| env_hash[k] = instance[k] if instance[k]}
       env_hash[:limits] = {
-        :fds  => instance[:fds_quota],
-        :mem  => instance[:mem_quota],
-        :disk => instance[:disk_quota],
+          :fds  => instance[:fds_quota],
+          :mem  => instance[:mem_quota],
+          :disk => instance[:disk_quota],
       }
       env_hash[:host] = @local_ip
       env_hash.to_json
@@ -1472,11 +1481,11 @@ module DEA
         stop_script = File.join(instance[:dir], 'stop')
         insecure_stop_cmd = "#{stop_script} #{instance[:pid]} 2> /dev/null"
         stop_cmd =
-          if @secure
-            "su -c \"#{insecure_stop_cmd}\" #{username}"
-          else
-            insecure_stop_cmd
-          end
+            if @secure
+              "su -c \"#{insecure_stop_cmd}\" #{username}"
+            else
+              insecure_stop_cmd
+            end
 
         unless (RUBY_PLATFORM =~ /darwin/ and @secure)
           @logger.debug("Executing stop script: '#{stop_cmd}', instance state is #{instance[:state]}")
@@ -1518,7 +1527,7 @@ module DEA
           @logger.debug("#{instance[:name]}: Cleaning up dir #{instance[:dir]}#{instance[:flapping]?' (flapping)':''}")
           EM.system("rm -rf #{instance[:dir]}")
         end
-      # Rechown crashed application directory using uid and gid of DEA
+        # Rechown crashed application directory using uid and gid of DEA
       else
         @logger.debug("#{instance[:name]}: Chowning crashed dir #{instance[:dir]}")
         EM.system("chown -R #{Process.euid}:#{Process.egid} #{instance[:dir]}")
@@ -1528,36 +1537,36 @@ module DEA
     def register_instance_with_router(instance, options = {})
       return unless (instance and instance[:uris] and not instance[:uris].empty?)
       NATS.publish('router.register', {
-                     :dea  => VCAP::Component.uuid,
-                     :app  => instance[:droplet_id],
-                     :host => @local_ip,
-                     :port => instance[:port],
-                     :uris => options[:uris] || instance[:uris],
-                     :tags => {:framework => instance[:framework], :runtime => instance[:runtime]},
-                     :private_instance_id => instance[:private_instance_id],
-                   }.to_json)
+          :dea  => VCAP::Component.uuid,
+          :app  => instance[:droplet_id],
+          :host => @local_ip,
+          :port => instance[:port],
+          :uris => options[:uris] || instance[:uris],
+          :tags => {:framework => instance[:framework], :runtime => instance[:runtime]},
+          :private_instance_id => instance[:private_instance_id],
+      }.to_json)
     end
 
     def unregister_instance_from_router(instance, options = {})
       return unless (instance and instance[:uris] and not instance[:uris].empty?)
       NATS.publish('router.unregister', {
-                     :dea  => VCAP::Component.uuid,
-                     :app  => instance[:droplet_id],
-                     :host => @local_ip,
-                     :port => instance[:port],
-                     :uris => options[:uris] || instance[:uris]
-                   }.to_json)
+          :dea  => VCAP::Component.uuid,
+          :app  => instance[:droplet_id],
+          :host => @local_ip,
+          :port => instance[:port],
+          :uris => options[:uris] || instance[:uris]
+      }.to_json)
     end
 
     def send_exited_notification(instance)
       return if instance[:evacuated]
       exit_message = {
-        :droplet => instance[:droplet_id],
-        :version => instance[:version],
-        :instance => instance[:instance_id],
-        :index => instance[:instance_index],
-        :reason => instance[:exit_reason],
-        :cc_partition => instance[:cc_partition],
+          :droplet => instance[:droplet_id],
+          :version => instance[:version],
+          :instance => instance[:instance_id],
+          :index => instance[:instance_index],
+          :reason => instance[:exit_reason],
+          :cc_partition => instance[:cc_partition],
       }
       exit_message[:crash_timestamp] = instance[:state_timestamp] if instance[:state] == :CRASHED
       exit_message = exit_message.to_json
@@ -1740,6 +1749,7 @@ module DEA
           monitor_apps_helper(startup_check, start, du_start, output, pid_info, user_info)
         end
 
+        #@logger.info("du_proc: #{du_proc}\n cont_proc: #{cont_proc}")
         EM.system('/bin/sh', du_proc, cont_proc)
       end
     end
